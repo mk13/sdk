@@ -1866,7 +1866,7 @@ dart.async = function(gen, T, ...args) {
     }
     return future.then(dart.dynamic)(onValue, {onError: onError});
   }
-  return dart.getGenericClass(async.Future)(T).new(function() {
+  return dart.getGenericClass(async.Future)(T).microtask(function() {
     iter = gen.apply(null, args)[Symbol.iterator]();
     return onValue();
   });

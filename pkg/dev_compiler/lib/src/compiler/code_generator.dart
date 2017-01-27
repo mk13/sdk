@@ -1462,7 +1462,8 @@ class CodeGenerator extends GeneralizingAstVisitor
     // Doing better is a bit tricky, as our current codegen strategy for the
     // mock methods encodes information about the number of arguments (and type
     // arguments) that D expects.
-    return _collectMockMethods(type).map(_implementMockMethod);
+    return _collectMockMethods(type)
+        .map((method) => _implementMockMethod(method, type));
   }
 
   /// Given a class C that implements method M from interface I, but does not
@@ -1484,7 +1485,7 @@ class CodeGenerator extends GeneralizingAstVisitor
   ///       return core.bool.as(this.noSuchMethod(
   ///           new dart.InvocationImpl('eatFood', args)));
   ///     }
-  JS.Method _implementMockMethod(ExecutableElement method) {
+  JS.Method _implementMockMethod(ExecutableElement method, InterfaceType type) {
     var invocationProps = <JS.Property>[];
     addProperty(String name, JS.Expression value) {
       invocationProps.add(new JS.Property(js.string(name), value));
@@ -1535,8 +1536,7 @@ class CodeGenerator extends GeneralizingAstVisitor
     // We have a similar issue with `dgsend` helpers.
     return new JS.Method(
         _declareMemberName(method,
-            useExtension:
-                _extensionTypes.isNativeClass(method.enclosingElement)),
+            useExtension: _extensionTypes.isNativeClass(type.element)),
         _makeGenericFunction(fn),
         isGetter: method is PropertyAccessorElement && method.isGetter,
         isSetter: method is PropertyAccessorElement && method.isSetter,

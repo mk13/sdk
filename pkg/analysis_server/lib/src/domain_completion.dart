@@ -140,7 +140,8 @@ class CompletionDomainHandler implements RequestHandler {
       if (result == null || !result.exists) {
         if (server.onNoAnalysisCompletion != null) {
           String completionId = (_nextCompletionId++).toString();
-          await server.onNoAnalysisCompletion(request, this, params, performance, completionId,);
+          await server.onNoAnalysisCompletion(
+              request, this, params, performance, completionId);
           return;
         } else {
           server.sendResponse(new Response.unknownSource(request));

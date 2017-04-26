@@ -91,6 +91,7 @@ class CompletionDomainHandler implements RequestHandler {
       }
       performance.logElapseTime(contributorTag);
     }
+
     performance.logElapseTime(COMPUTE_SUGGESTIONS_TAG);
 
     // TODO (danrubel) if request is obsolete
@@ -138,14 +139,8 @@ class CompletionDomainHandler implements RequestHandler {
       result = await server.getAnalysisResult(params.file);
 
       if (result == null || !result.exists) {
-        if (server.onNoAnalysisCompletion != null) {
-          String completionId = (_nextCompletionId++).toString();
-          await server.onNoAnalysisCompletion(request, this, params, performance, completionId,);
-          return;
-        } else {
-          server.sendResponse(new Response.unknownSource(request));
-          return;
-        }
+        server.sendResponse(new Response.unknownSource(request));
+        return;
       }
 
       if (params.offset < 0 || params.offset > result.content.length) {
@@ -192,10 +187,10 @@ class CompletionDomainHandler implements RequestHandler {
         params.offset,
         performance,
         server.ideOptions);
-
     String completionId = (_nextCompletionId++).toString();
 
-    setNewRequest(completionRequest);
+    _abortCurrentRequest();
+    _currentRequest = completionRequest;
 
     // initial response without results
     server.sendResponse(new CompletionGetSuggestionsResult(completionId)
@@ -208,25 +203,17 @@ class CompletionDomainHandler implements RequestHandler {
       sendCompletionNotification(completionId, result.replacementOffset,
           result.replacementLength, result.suggestions);
       performance.logElapseTime(SEND_NOTIFICATION_TAG);
+
       performance.notificationCount = 1;
       performance.logFirstNotificationComplete('notification 1 complete');
       performance.suggestionCountFirst = result.suggestions.length;
       performance.suggestionCountLast = result.suggestions.length;
       performance.complete();
     }).whenComplete(() {
-      ifMatchesRequestClear(completionRequest);
+      if (_currentRequest == completionRequest) {
+        _currentRequest = null;
+      }
     });
-  }
-
-  void setNewRequest(CompletionRequest completionRequest) {
-    _abortCurrentRequest();
-    _currentRequest = completionRequest;
-  }
-
-  void ifMatchesRequestClear(CompletionRequest completionRequest) {
-    if (_currentRequest == completionRequest) {
-      _currentRequest = null;
-    }
   }
 
   /**
